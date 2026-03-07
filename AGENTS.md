@@ -106,12 +106,65 @@ verification.
 
 ### Validation
 
-Verify changes by:
+All commands below run from the `play/` directory.
 
-1. Running `docker compose build` from `play/` successfully (Dockerfile
-   syntax, checksums, smoke tests)
-2. Testing locally with `docker compose up` from `play/` when changes affect
-   runtime behavior
+#### Build validation
+
+Run `docker compose build` and confirm it completes without errors. This
+verifies Dockerfile syntax, binary downloads, SHA256 checksums, and the
+built-in smoke tests.
+
+#### Runtime validation
+
+When changes affect runtime behavior (entrypoint, config templates, version
+bumps), verify the container starts and operates correctly:
+
+1. Start the stack in detached mode:
+
+   ```
+   docker compose up -d
+   ```
+
+2. Wait for the health check interval (~30 s) and confirm all services
+   report `(healthy)`:
+
+   ```
+   docker compose ps
+   ```
+
+3. Inspect server logs for startup errors or unexpected warnings:
+
+   ```
+   docker compose logs server
+   ```
+
+4. Verify the health endpoint returns HTTP 200:
+
+   ```
+   curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health
+   ```
+
+5. Shut down the stack when done:
+
+   ```
+   docker compose down
+   ```
+
+#### Upgrade validation
+
+When bumping Headscale or Litestream versions, test the database migration
+path to catch incompatibilities early:
+
+1. **Before** applying changes, build and start the current version to
+   create a baseline database (`docker compose build && docker compose up -d`).
+   Confirm the container is healthy, then stop it with
+   `docker compose down`. The database volume persists across restarts.
+2. Apply the version bump and rebuild (`docker compose build`).
+3. Start the stack again (`docker compose up -d`). The new version will
+   open the existing database and run any pending migrations.
+4. Confirm the container reaches `(healthy)` status, check the logs for
+   migration errors, and verify the health endpoint.
+5. Shut down with `docker compose down`.
 
 ## Pull request conventions
 
