@@ -40,6 +40,12 @@ services:
     ports:
       - "8080:8080"
 
+    healthcheck:
+      test: ["CMD", "headscale", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
     volumes:
       - headscale:/app/data
 
