@@ -1,0 +1,3 @@
+kind: changed
+body: Switch policy from database mode to file-based with allow-all default
+time: 2026-03-08T15:41:10.925828+01:00

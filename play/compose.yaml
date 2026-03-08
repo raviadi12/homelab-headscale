@@ -48,6 +48,7 @@ services:
 
     volumes:
       - headscale:/app/data
+      - ../container/policy.json:/etc/headscale/policy.json:ro
 
   replica1: &replica
     image: registry.docker.com/bitnamilegacy/minio:latest
