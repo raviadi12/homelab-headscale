@@ -87,6 +87,7 @@ RUN --mount=type=cache,target=/var/cache/apk \
 # ---
 # copy configuration and templates
 COPY ./container/headscale.yaml /etc/headscale/config.yaml
+COPY ./container/policy.json /etc/headscale/policy.json
 COPY ./container/litestream.yml /etc/litestream.yml
 COPY ./container/entrypoint.sh /entrypoint.sh
 

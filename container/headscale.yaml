@@ -36,7 +36,7 @@ log:
   level: info
 
 policy:
-  mode: database
+  path: /etc/headscale/policy.json
 
 dns:
   magic_dns: true
