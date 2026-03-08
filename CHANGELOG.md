@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.6.0 - 2026-03-08
+
+### Changed
+
+- Upgrade base Alpine Linux image from 3.23.2 to 3.23.3
+- Upgrade Headscale from 0.27.1 to 0.28.0
+- Expand validation instructions in AGENTS.md with build, runtime, and upgrade steps
+- Switch policy from database mode to file-based with allow-all default
+
+### Fixed
+
+- Add healthcheck to server service in local development compose
+
+### Internal
+
+- Add AGENTS.md with build, test, and contribution guidelines
+
 ## v0.5.0 - 2026-01-19
 
 ### Changed
