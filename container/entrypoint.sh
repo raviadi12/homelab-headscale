@@ -105,12 +105,29 @@ fi
 echo "INFO: Attempting to restore database if missing..."
 su-exec "$PUID:$PGID" litestream restore -if-db-not-exists -if-replica-exists ${DB_FILE}
 
+echo "INFO: Starting temporary Headscale instance for setup..."
+su-exec "$PUID:$PGID" ${APP} serve &
+HS_TEMP_PID=$!
+
+echo "INFO: Waiting for Headscale to be ready..."
+for i in $(seq 1 30); do
+	if su-exec "$PUID:$PGID" ${APP} users list >/dev/null 2>&1; then
+		break
+	fi
+	sleep 1
+done
+
 echo "INFO: Ensuring default user exists..."
 su-exec "$PUID:$PGID" ${APP} users create hpc-lab 2>/dev/null || true
 
 USER_ID=$(su-exec "$PUID:$PGID" ${APP} users list | awk '$0 ~ /hpc-lab/ {print $1; exit}')
 echo "INFO: Generating pre-auth key for user id ${USER_ID}..."
 su-exec "$PUID:$PGID" ${APP} preauthkeys create --user "${USER_ID}" --reusable --expiration 168h || true
+
+echo "INFO: Stopping temporary Headscale instance..."
+kill $HS_TEMP_PID
+wait $HS_TEMP_PID 2>/dev/null || true
+sleep 2
 
 if [ -z "$DISABLE_REPLICATION" ]; then
 	echo "INFO: Starting application using Litestream..."
