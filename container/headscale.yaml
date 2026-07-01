@@ -16,6 +16,7 @@ derp:
     region_id: 999
     region_code: "custom"
     region_name: "HPC Lab Custom DERP"
+    stun_listen_addr: "0.0.0.0:3478"
   urls: []
   paths: []
   auto_update_enabled: false
