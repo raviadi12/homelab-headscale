@@ -105,6 +105,9 @@ fi
 echo "INFO: Attempting to restore database if missing..."
 su-exec "$PUID:$PGID" litestream restore -if-db-not-exists -if-replica-exists ${DB_FILE}
 
+echo "INFO: Ensuring default user exists..."
+su-exec "$PUID:$PGID" ${APP} users create hpc-lab 2>/dev/null || true
+
 if [ -z "$DISABLE_REPLICATION" ]; then
 	echo "INFO: Starting application using Litestream..."
 	exec su-exec "$PUID:$PGID" litestream replicate -exec "${APP} ${APP_ARGS}"
