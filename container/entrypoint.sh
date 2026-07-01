@@ -117,9 +117,14 @@ setup_headscale() {
 	echo "INFO: [setup] Ensuring default user exists..."
 	su-exec "$PUID:$PGID" ${APP} users create hpc-lab 2>/dev/null || true
 
-	USER_ID=$(su-exec "$PUID:$PGID" ${APP} users list -o json 2>/dev/null | grep -o '"id":"[0-9]*"' | head -1 | grep -o '[0-9]*')
-	echo "INFO: [setup] Generating pre-auth key for user id ${USER_ID}..."
-	su-exec "$PUID:$PGID" ${APP} preauthkeys create --user "${USER_ID}" --reusable --expiration 168h
+	USER_ID=$(su-exec "$PUID:$PGID" ${APP} users list 2>/dev/null | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | awk '$0 ~ /hpc-lab/ {print $1; exit}') || true
+
+	if [ -z "$USER_ID" ]; then
+		echo "WARN: [setup] Could not determine user id, skipping pre-auth key"
+	else
+		echo "INFO: [setup] Generating pre-auth key for user id ${USER_ID}..."
+		su-exec "$PUID:$PGID" ${APP} preauthkeys create --user "${USER_ID}" --reusable --expiration 168h || true
+	fi
 }
 
 setup_headscale &
