@@ -11,9 +11,14 @@ prefixes:
   v6: fd7a:115c:a1e0::/48
 
 derp:
-  urls:
-    - https://controlplane.tailscale.com/derpmap/default
-  auto_update_enabled: true
+  server:
+    enabled: true
+    region_id: 999
+    region_code: "custom"
+    region_name: "HPC Lab Custom DERP"
+  urls: []
+  paths: []
+  auto_update_enabled: false
   update_frequency: 24h
 
 # Disables the automatic check for headscale updates on startup
