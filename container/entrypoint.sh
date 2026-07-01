@@ -108,8 +108,9 @@ su-exec "$PUID:$PGID" litestream restore -if-db-not-exists -if-replica-exists ${
 echo "INFO: Ensuring default user exists..."
 su-exec "$PUID:$PGID" ${APP} users create hpc-lab 2>/dev/null || true
 
-echo "INFO: Generating pre-auth key..."
-su-exec "$PUID:$PGID" ${APP} preauthkeys create --user hpc-lab --reusable --expiration 168h
+USER_ID=$(su-exec "$PUID:$PGID" ${APP} users list | awk '$0 ~ /hpc-lab/ {print $1; exit}')
+echo "INFO: Generating pre-auth key for user id ${USER_ID}..."
+su-exec "$PUID:$PGID" ${APP} preauthkeys create --user "${USER_ID}" --reusable --expiration 168h || true
 
 if [ -z "$DISABLE_REPLICATION" ]; then
 	echo "INFO: Starting application using Litestream..."
