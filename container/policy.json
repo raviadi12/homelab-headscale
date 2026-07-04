@@ -1,7 +1,7 @@
 {
   "groups": {
-    "group:lab": ["hpc-lab"],
-    "group:external": ["arif", "hanif"]
+    "group:lab": ["hpc-lab@"],
+    "group:external": ["arif@", "hanif@"]
   },
   "acls": [
     {
