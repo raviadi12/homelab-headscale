@@ -2,17 +2,13 @@
 
 set -e
 
-# Capture DB_FILE, APP, and possible arguments from command line
 DB_FILE=$1
 APP=$2
 shift 2
 APP_ARGS="$@"
 
-# Validate that both arguments are provided
 if [ -z "$DB_FILE" ] || [ -z "$APP" ]; then
     echo "ERROR: Both DB_FILE and APP arguments are required" >&2
-    echo "Usage: $0 <db_file_path> <app_path> [app_args...]"
-    echo "Example: $0 /app/data/headscale.db /usr/local/bin/headscale serve"
     exit 1
 fi
 
@@ -21,7 +17,6 @@ DB_PATH=$(dirname ${DB_FILE})
 export APP_NAME=$(basename ${APP})
 export DB_FILE
 
-# running user
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}
 
@@ -31,7 +26,6 @@ check_config_files() {
 
 	local abort_config=0
 
-	# abort if needed variables are missing
 	if [ -z "$HEADSCALE_SERVER_URL" ]; then
 		echo "ERROR: Required environment variable 'HEADSCALE_SERVER_URL' is missing." >&2
 		abort_config=1
@@ -90,6 +84,39 @@ check_socket_directory() {
 	find "/var/run/${APP_NAME}" \( ! -group "${PGID}" -o ! -user "${PUID}" \) -exec chown "${PUID}:${PGID}" {} +
 }
 
+setup_headscale() {
+	echo "INFO: [setup] Waiting for Headscale to be ready..."
+	for i in $(seq 1 30); do
+		if su-exec "$PUID:$PGID" ${APP} users list >/dev/null 2>&1; then
+			break
+		fi
+		sleep 1
+	done
+
+	echo "INFO: [setup] Ensuring users exist..."
+	su-exec "$PUID:$PGID" ${APP} users create hpc-lab 2>/dev/null || true
+	su-exec "$PUID:$PGID" ${APP} users create arif 2>/dev/null || true
+	su-exec "$PUID:$PGID" ${APP} users create hanif 2>/dev/null || true
+
+	for u in hpc-lab arif hanif; do
+		UID_TMP=$(su-exec "$PUID:$PGID" ${APP} users list 2>/dev/null | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | awk -v name="$u" '$0 ~ name {print $1; exit}') || true
+		if [ -n "$UID_TMP" ]; then
+			echo "INFO: [setup] Generating pre-auth key for $u (id ${UID_TMP})..."
+			su-exec "$PUID:$PGID" ${APP} preauthkeys create --user "${UID_TMP}" --reusable --expiration 720h || true
+		else
+			echo "WARN: [setup] Could not determine user id for $u"
+		fi
+	done
+
+	echo "INFO: [setup] Approving subnet routes for headnode..."
+	NODE_ID=$(su-exec "$PUID:$PGID" ${APP} nodes list 2>/dev/null | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | awk '$0 ~ /headnode/ {print $1; exit}') || true
+	if [ -n "$NODE_ID" ]; then
+		su-exec "$PUID:$PGID" ${APP} nodes approve-routes --identifier "${NODE_ID}" --routes 192.168.50.8/32 || true
+	else
+		echo "WARN: [setup] Could not find headnode node id, skipping route approval"
+	fi
+}
+
 if ! check_config_files; then
 	exit 1
 fi
@@ -104,28 +131,6 @@ fi
 
 echo "INFO: Attempting to restore database if missing..."
 su-exec "$PUID:$PGID" litestream restore -if-db-not-exists -if-replica-exists ${DB_FILE}
-
-setup_headscale() {
-	echo "INFO: [setup] Waiting for Headscale to be ready..."
-	for i in $(seq 1 30); do
-		if su-exec "$PUID:$PGID" ${APP} users list >/dev/null 2>&1; then
-			break
-		fi
-		sleep 1
-	done
-
-	echo "INFO: [setup] Ensuring default user exists..."
-	su-exec "$PUID:$PGID" ${APP} users create hpc-lab 2>/dev/null || true
-
-	USER_ID=$(su-exec "$PUID:$PGID" ${APP} users list 2>/dev/null | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | awk '$0 ~ /hpc-lab/ {print $1; exit}') || true
-
-	if [ -z "$USER_ID" ]; then
-		echo "WARN: [setup] Could not determine user id, skipping pre-auth key"
-	else
-		echo "INFO: [setup] Generating pre-auth key for user id ${USER_ID}..."
-		su-exec "$PUID:$PGID" ${APP} preauthkeys create --user "${USER_ID}" --reusable --expiration 168h || true
-	fi
-}
 
 setup_headscale &
 

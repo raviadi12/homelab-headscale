@@ -1,1 +1,18 @@
-{}
+{
+  "groups": {
+    "group:lab": ["hpc-lab"],
+    "group:external": ["arif", "hanif"]
+  },
+  "acls": [
+    {
+      "action": "accept",
+      "src": ["group:lab"],
+      "dst": ["*:*"]
+    },
+    {
+      "action": "accept",
+      "src": ["group:external"],
+      "dst": ["192.168.50.8:5432"]
+    }
+  ]
+}
